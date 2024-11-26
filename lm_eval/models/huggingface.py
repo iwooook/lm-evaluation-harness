@@ -37,6 +37,7 @@ from lm_eval.models.utils import (
     stop_sequences_criteria,
 )
 
+from snapkv.monkeypatch.monkeypatch import replace_llama
 
 eval_logger = utils.eval_logger
 
@@ -92,6 +93,7 @@ class HFLM(TemplateLM):
         **kwargs,
     ) -> None:
         super().__init__()
+        replace_llama()
         # optionally: take in an already-initialized transformers.PreTrainedModel
         if not isinstance(pretrained, str):
             eval_logger.warning(
@@ -579,6 +581,7 @@ class HFLM(TemplateLM):
                 torch_dtype=get_dtype(dtype),
                 trust_remote_code=trust_remote_code,
                 **model_kwargs,
+                use_flash_attention_2=True
             )
         else:
             if autogptq and gptqmodel:
