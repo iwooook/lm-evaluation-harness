@@ -37,6 +37,7 @@ from lm_eval.models.utils import (
     stop_sequences_criteria,
 )
 
+from .H2O.utils.llama import H2OLlamaForCausalLM
 
 eval_logger = utils.eval_logger
 
@@ -50,7 +51,7 @@ class HFLM(TemplateLM):
     Supports data-parallel multi-GPU with HF Accelerate.
     """
 
-    AUTO_MODEL_CLASS = None
+    AUTO_MODEL_CLASS = H2OLlamaForCausalLM
     _DEFAULT_MAX_LENGTH = 2048
 
     def __init__(
@@ -573,12 +574,16 @@ class HFLM(TemplateLM):
                             model_kwargs["bnb_4bit_compute_dtype"]
                         )
 
+            self._config.num_heavy_hitter_tokens = 128
+            self._config.num_window_length = 256
+            self._config.enable_position_rolling = True
             self._model = self.AUTO_MODEL_CLASS.from_pretrained(
                 pretrained,
                 revision=revision,
                 torch_dtype=get_dtype(dtype),
                 trust_remote_code=trust_remote_code,
                 **model_kwargs,
+                config=self._config
             )
         else:
             if autogptq and gptqmodel:
@@ -851,7 +856,7 @@ class HFLM(TemplateLM):
                     input_ids=inps, attention_mask=attn_mask, labels=labels
                 ).logits
             else:
-                assert self.AUTO_MODEL_CLASS == transformers.AutoModelForCausalLM
+                #assert self.AUTO_MODEL_CLASS == transformers.AutoModelForCausalLM
                 return self.model(inps).logits
 
     def _model_generate(self, context, max_length, stop, **generation_kwargs):
